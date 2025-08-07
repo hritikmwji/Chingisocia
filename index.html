@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chingi Social</title>
+</head>
+<body>
+
+  <h1>📷 Chingi Social</h1>
+
+  <!-- Login / Signup Section -->
+  <h2>Login / Sign Up</h2>
+  <input type="email" id="email" placeholder="Email"><br>
+  <input type="password" id="password" placeholder="Password"><br>
+  <button onclick="signUp()">Sign Up</button>
+  <button onclick="logIn()">Log In</button>
+  <button onclick="logOut()">Log Out</button>
+  <p id="user-status">Checking login...</p>
+
+  <hr>
+
+  <!-- Post Section (Only after login) -->
+  <div id="post-section" style="display:none;">
+    <h2>Create a Post</h2>
+    <input type="text" id="caption" placeholder="Write your caption..."><br>
+    <button onclick="sendPost()">Post</button>
+
+    <h3>📄 All Posts</h3>
+    <div id="all-posts"></div>
+  </div>
+
+  <!-- Firebase Scripts -->
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.24.0/firebase-database-compat.js"></script>
+
+  <script>
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDi7qyaGuq9zjLkvJ_jAws1r-hbb0XuLAA",
+      authDomain: "chingi-social.firebaseapp.com",
+      projectId: "chingi-social",
+      storageBucket: "chingi-social.firebasestorage.app",
+      messagingSenderId: "786199450782",
+      appId: "1:786199450782:web:cc65fb73396496871f178f"
+    };
+
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const database = firebase.database();
+
+    // Sign Up
+    function signUp() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.createUserWithEmailAndPassword(email, password)
+        .then(() => alert("✅ Sign up successful!"))
+        .catch(error => alert("❌ " + error.message));
+    }
+
+    // Log In
+    function logIn() {
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+      auth.signInWithEmailAndPassword(email, password)
+        .then(() => alert("✅ Login successful!"))
+        .catch(error => alert("❌ " + error.message));
+    }
+
+    // Log Out
+    function logOut() {
+      auth.signOut().then(() => alert("✅ Logged out!"));
+    }
+
+    // When auth changes (login/logout)
+    auth.onAuthStateChanged(user => {
+      const status = document.getElementById("user-status");
+      const postSection = document.getElementById("post-section");
+
+      if (user) {
+        status.innerText = "Logged in as: " + user.email;
+        postSection.style.display = "block";
+        loadPosts();
+      } else {
+        status.innerText = "Not logged in";
+        postSection.style.display = "none";
+      }
+    });
+
+    // Send a new post
+    function sendPost() {
+      const user = auth.currentUser;
+      const caption = document.getElementById("caption").value;
+      if (user && caption.trim() !== "") {
+        const post = {
+          uid: user.uid,
+          username: user.email,
+          caption: caption,
+          timestamp: Date.now()
+        };
+        database.ref("posts").push(post);
+        document.getElementById("caption").value = "";
+      } else {
+        alert("Login first and write something!");
+      }
+    }
+
+    // Load all posts
+    function loadPosts() {
+      const postContainer = document.getElementById("all-posts");
+      postContainer.innerHTML = "Loading...";
+      database.ref("posts").on("value", snapshot => {
+        const posts = snapshot.val();
+        postContainer.innerHTML = "";
+        for (let id in posts) {
+          const post = posts[id];
+          const div = document.createElement("div");
+          div.innerHTML = `<b>${post.username}</b>: ${post.caption}`;
+          postContainer.appendChild(div);
+        }
+      });
+    }
+  </script>
+</body>
+</html>
